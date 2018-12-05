@@ -13,103 +13,129 @@ from matplotlib.widgets import Slider, Button, RadioButtons
 
 # import matplotlib.animation as animation
 
-def partDistance(particle1,particle2):
-    dist = np.sqrt( (particle1.xpos - particle2.xpos)**2 + (particle1.ypos - particle2.ypos))
-    print(type(dist))
+
+def partDistance(particle1, particle2):
+    dist = np.sqrt((particle1.x[0] - particle2.x[0])**2 + (particle1.x[1] -
+                                                           particle2.x[1]))
+
     return dist
 
+def magnitude(vector):
+    x, y = vector
+    magnitude = np.sqrt(x**2 + y**2)
+    return magnitude
+
+def collisionCalculaiton(p1, p2):
+    v1 = p1.v
+    v2 = p2.v
+    m1 = p1.m
+    m2 = p2.m
+    x1 = np.array(p1.x)
+    x2 = np.array(p2.x)
+
+    massTerm1 = (2*m2)/(m1+m2)
+    massTerm2 = (2*m1)/(m1+m2)
+    vsub1 = v1-v2
+    vsub2 = v2-v1
+    xsub1 = x1-x2
+    xsub2 = x2-x1
+    xmag1 = magnitude(xsub1)
+    xmag2 = magnitude(xsub2)
+    xmagsqr1 = xmag1**2
+    xmagsqr2 = xmag2**2
+    dotprod1 = np.dot(vsub1,xsub1)
+    dotprod2 = np.dot(vsub2,xsub2)
+
+    prodTerm1 = dotprod1/xmagsqr1
+    prodTerm2 = dotprod2/xmagsqr2
 
 
+    v1 = v1 - massTerm1*prodTerm1*xsub1
+    v2 = v2 - massTerm2*prodTerm2*xsub2
+    p1.v = v1
+    p2.v = v2
 class robovac:
 
-    def __init__(self, batteryLife,xpos):
-        self.batteryLife = batteryLife*60
-        self.xpos = xpos
-        self.ypos = 0
-        self.theta = np.pi / 4
-        self.v = .5
+    def __init__(self, v, x):
+        self.x = np.array(x)
+        self.v = np.array(v)
         self.diameter = 1
-        self.mass = 1
+        self.m = 1
 
-    def collisionDetection(self, i, p):
 
+
+    def collisionDetection(self, p, i):
         for j in range(len(p)):
-            if j != i:
-
+            if i != j:
                 dist = partDistance(p[i], p[j])
-                
-                if dist < self.diameter:
-                    r1 = np.array((self.xpos, self.ypos))
-                    r2 = np.array((p[j].xpos, p[j].ypos))
 
-                    m1 = self.mass
-                    m2 = p[j].mass
-
-                    v1 = self.v
-                    v2 = p[j].v
-
-                    r_rel = r1 -r2
-                    v_rel = v1 - v2
-
-                    v_cm = (m1*v1 + m2*v2) / (m1 + m2)
-
-                    rr_rel = np.dot(r_rel,r_rel)
-                    vr_rel = np.dot(v_rel,r_rel)
-                    v_rel = 2 * r_rel * vr_rel / rr_rel - v_rel
-
-                    self.v = v_cm + v_rel * m2 / (m1 + m2)
-    def move(self , i,p):
-
-        # #Velocity in feet per second
-        #
-        # if self.xpos >= 10:
-        #     if self.ypos >= 10:
-        #         thetaRange = (np.pi, 3*np.pi/2)
-        #
-        #     elif self.ypos <= -10:
-        #         thetaRange = (np.pi/2 , np.pi)
-        #     else:
-        #         thetaRange = (np.pi/2 , 3*np.pi/2)
-        # elif self.ypos >= 10:
-        #     thetaRange = (np.pi , 2*np.pi)
-        #
-        # elif self.xpos <= -10:
-        #     if self.ypos >= 10:
-        #         thetaRange = (3*np.pi/2, 2*np.pi)
-        #     elif self.ypos <= -10:
-        #         thetaRange = (0,np.pi/2)
-        #     else:
-        #         thetaRange = (3*np.pi/2 , 5*np.pi/2)
-        # elif self.ypos <= -10:
-        #     thetaRange = (0 , np.pi)
-        #
-        #
-        if abs(self.xpos) >= 10 or abs(self.ypos) >= 10:
-            thetaHigh , thetaLow = thetaRange
-            #the following comes from plugging in generic high and low values
-            #into point-slop formula for a line
-            self.theta = (thetaHigh - thetaLow) * np.random.random() + thetaLow
-        self.collisionDetection(i,p)
-        self.xpos = self.v*np.cos(self.theta) + self.xpos
-        self.ypos = self.v*np.sin(self.theta) + self.ypos
+                if dist <= 0.2:  # self.diameter + p[j].diameter:
+                    collisionCalculaiton(self,p[j])
 
 
+    def move(self, i, p):
+        print(self.v)
+        xpos = self.x[0]
+        ypos = self.x[1]
+        r = self.diameter / 2
+        if xpos + r >= 10:
+            if self.v[0] > 0:
+                self.v[0] = -self.v[0]
+        elif xpos - r <= -10:
+            if self.v[0] < 0:
+                self.v[0] = -self.v[0]
+        if ypos + r >= 10:
+            if self.v[1] > 0:
+                self.v[1] = -self.v[1]
+        elif ypos - r <= -10:
+            if self.v[1] < 0:
+                self.v[1] = -self.v[1]
 
+
+        # if abs(xpos) >= 10 or abs(ypos) >= 10:
+        #     thetaHigh, thetaLow = thetaRange
+        #     # the following comes from plugging in generic high and low values
+        #     # into point-slop formula for a line
+        #     theta = (thetaHigh - thetaLow) * np.random.random() + thetaLow
+        # self.collisionDetection(i,p)
+        #self.v[0] = speed*np.cos(theta)
+        #self.v[1] = speed*np.sin(theta)
+        # self.v = np.array(V0, V1)
+        # self.x[0] = self.v[0] + xpos
+        # self.x[1] = self.v[1] + ypos
+
+        #self.collisionDetection(p, i)
+        xpos = self.v[0] + xpos
+        ypos = self.v[1] + ypos
+        self.x = (xpos, ypos)
 
     def speed(self, v):
         self.v = v
-#Main program
-def stumble(batteryLife = 300):
-    length = 5
-    v=.5
-    p = [0]*length
-    px = [0]*length
-    py = [0]*length
+# Main program
 
+
+def stumble():
+    length = 30
+    v = (.5, .5)
+    p = [0]*length
+    pX = np.zeros((length,2))
     for j in range(length):
-        p[j] = robovac(batteryLife,np.random.randint(0,10)) #create an instance of the drunkard class
-        px[j] = p[j].xpos
-        py[j] = p[j].ypos
+        x = np.array((np.random.randint(10),np.random.randint(10)))
+        p[j] = robovac(v, x) # create an instance of the drunkard class
+        pX[j,0] = p[j].x[0]
+        pX[j,1] = p[j].x[1]
+
+    # p = [0]*2
+    # pX = np.zeros((2,2))
+    #
+    # p[0]=robovac((.1,0),(0,0))
+    # p[1]=robovac((0,0),(1,0))
+    # for j in range(len(p)):
+    #     pX[j,0] = p[j].x[0]
+    #     pX[j,1] = p[j].x[1]
+
+
+
 
     fig = plt.figure() #can use facecolor = 'white' argument to change figure background
     ax = plt.axes()
@@ -126,29 +152,29 @@ def stumble(batteryLife = 300):
     # p = (particle1,particle2)
 
     # Define an axes area and draw a slider in it
-    amp_slider_ax = fig.add_axes([0.25, 0.15, 0.45, 0.03])
-    amp_slider = Slider(amp_slider_ax, 'Amp', 0.1, 1, valinit=v)
+    # amp_slider_ax = fig.add_axes([0.25, 0.15, 0.45, 0.03])
+    # amp_slider = Slider(amp_slider_ax, 'Amp', 0.1, 1, valinit=v)
+    #
+    # def sliders_on_changed(val):
+    #     for i in range(len(p)):
+    #         p[i].speed(amp_slider.val)
+    #
+    #
+    #     #fig.canvas.draw_idle()
+    # amp_slider.on_changed(sliders_on_changed)
 
-    def sliders_on_changed(val):
-        for i in range(len(p)):
-            p[i].speed(amp_slider.val)
-
-
-        #fig.canvas.draw_idle()
-    amp_slider.on_changed(sliders_on_changed)
-
-
-    while True:
-
-        point1.set_data(px, py)
+    abcde = 0
+    while abcde < 500:
+        xval = pX[:,0]
+        yval = pX[:,1]
+        point1.set_data(xval,yval)
         # point2.set_data(particle2.xpos, particle2.ypos)
 
         for i in range(len(p)):
 
-            p[i].move(i,p)
+            p[i].move(i, p)
         for j in range(length):
-            px[j] = p[j].xpos
-            py[j] = p[j].ypos
-        plt.pause( 0.001)  #this causes a stupid matplotlib warning - ignore!
-
+            pX[j] = p[j].x
+        plt.pause( 0.05)  #this causes a stupid matplotlib warning - ignore!
+        abcde += 1
 stumble()
