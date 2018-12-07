@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 
-Created on Thu Nov 10 19:26:26 2016
-
-@author: jrathman
+Sources:
+Stop clipping: https://seanny1986.wordpress.com/2017/10/01/simulation-of-elastic-collisions-in-python/
+cdist and using array: https://stackoverflow.com/questions/28144084/many-particles-in-box-physics-simulation
 """
 
 import numpy as np
@@ -18,7 +18,7 @@ from matplotlib.widgets import Slider, Button, RadioButtons
 
 def partDistance(particle1, particle2):
     dist = np.sqrt((particle1.x[0] - particle2.x[0])**2 + (particle1.x[1] -
-                                                           particle2.x[1]))
+                                                           particle2.x[1])**2)
 
     return dist
 
@@ -33,24 +33,29 @@ def collisionDetection(pX,p):
 
     for i in range(len(pX)):
         for j in range(i):
-
-            if dist[i,j] < .000001:
+            collideDist = p[i].diameter/2 + p[j].diameter/2
+            if dist[i,j] < collideDist:
                 #print(dist[i,j],i,j)
-                collisionCalculaiton(p[i],p[j])
+                collisionCalculaiton(p[i],p[j], dist[i,j], collideDist)
 
 
 
 
-def collisionCalculaiton(p1, p2):
+def collisionCalculaiton(p1, p2, dist, collideDist):
 
+    r1 = p1.diameter / 2
+    r2 = p2.diameter / 2
     v1 = p1.v
     v2 = p2.v
     m1 = p1.m
     m2 = p2.m
+
+
     x1 = np.array(p1.x)
     x2 = np.array(p2.x)
     if np.allclose(x1,x2):
-        x1 += 0.001
+        x1 += v1*0.00001
+
 
 
     massTerm1 = (2*m2)/(m1+m2)
@@ -72,20 +77,40 @@ def collisionCalculaiton(p1, p2):
 
     # v1 = v1 - massTerm1*prodTerm1*xsub1
     # v2 = v2 - massTerm2*prodTerm2*xsub2
-    if p1.bumpFlag == False:
-        p1.v = -v1
-        #p1.v =  v1 +v2
-        p1.bumpFlag = True
-        p1.time = time.time()
-    if p2.bumpFlag == False:
-        p2.v = - v2
-        #p2.v = v2 - massTerm2*prodTerm2*xsub2
 
-        p2.bumpFlag = True
-        p2.time = time.time()
-    else:
-        p1.bumpFlag = False
-        p2.bumpFlag = False
+
+    # if p1.bumpFlag == False:
+
+
+    p1.v = -v1
+        # p1.v =  v1 +v2
+        # p1.bumpFlag = True
+        # p1.time = time.time()
+    # if p2.bumpFlag == False:
+    p2.v = - v2
+        # p2.v = v2 - massTerm2*prodTerm2*xsub2
+
+        #p2.bumpFlag = True
+        # p2.time = time.time()
+    # else:
+        #p1.bumpFlag = False
+        #p2.bumpFlag = False
+    xpos1 = p1.v[0] + p1.x[0]
+    ypos1 = p1.v[1] + p1.x[1]
+
+    xpos2 = p2.v[0] + p2.x[0]
+    ypos2 = p2.v[1] + p2.x[1]
+
+    difference = np.array(x1) - np.array(x2)
+    mag = magnitude(difference)
+    offset = mag - (p1.diameter/2 + p2.diameter/2)
+
+    p1.positionIncrease((-difference/mag)*offset/2)
+    p2.positionIncrease((difference/mag)*offset/2)
+    # if np.sqrt((xpos1 - xpos2)**2 + (ypos1 - ypos2)**2) < collideDist:
+    #     p1.x = p1.x + p1.v*collideDist/2
+    #     p2.x = p2.x + p2.v*collideDist/2
+    #     print(p1.v)
 class robovac:
 
     def __init__(self, v, x, step):
@@ -141,17 +166,21 @@ class robovac:
 
     def speed(self, v):
         self.v = v
+
+    def positionIncrease(self, dx):
+        self.x = self.x + dx
 # Main program
 
 
 def stumble():
-    length = 5
-    step=30
-    v = (5, 5)
+    length = 10
+    step=40
+    # v = (5, 5)
     p = [0]*length
     pX = np.zeros((length,2))
     for j in range(length):
         x = np.array(( float(np.random.randint(10)),float(np.random.randint(10))))
+        v = np.array(( float(np.random.randint(-10,10))*5,float(np.random.randint(-10,10))*5))
         p[j] = robovac(v, x, step) # create an instance of the drunkard class
         pX[j,0] = p[j].x[0]
         pX[j,1] = p[j].x[1]
@@ -195,7 +224,7 @@ def stumble():
     # amp_slider.on_changed(sliders_on_changed)
 
     abcde = 0
-    while abcde < 500:
+    while abcde < 200:
         xval = pX[:,0]
         yval = pX[:,1]
         point1.set_data(xval,yval)
