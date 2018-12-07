@@ -1,91 +1,45 @@
 import numpy as np
 
-def distance(particle1,particle2):
-    dist = np.sqrt( (particle1.xpos - particle2.xpos)**2 + (particle1.ypos - particle2.ypos))
+def magnitude(vector):
+    x, y = vector
+    magnitude = np.sqrt(x**2 + y**2)
+    return magnitude
 
-    return dist
+def collisionCalculaiton():
+    v1 = np.array((1,0))
+    v2 = np.array((0,0))
+    m1 = 1
+    m2 = 1
+    x1 = np.array((.5,0))
+    x2 = np.array((.6,0))
 
+    massTerm1 = (2*m2)/(m1+m2)
+    massTerm2 = (2*m1)/(m1+m2)
+    vsub1 = v1-v2
+    vsub2 = v2-v1
+    xsub1 = x1-x2
+    xsub2 = x2-x1
+    xmag1 = magnitude(xsub1)
+    xmag2 = magnitude(xsub2)
+    xmagsqr1 = xmag1**2
+    xmagsqr2 = xmag2**2
+    dotprod1 = np.dot(vsub1,xsub1)
+    dotprod2 = np.dot(vsub2,xsub2)
 
-class robovac:
-
-    def __init__(self, batteryLife,xpos):
-        self.batteryLife = batteryLife*60
-        self.xpos = xpos
-        self.ypos = 0
-        self.theta = np.pi / 4
-        self.v = .5
-        self.diameter = 1
-        self.mass = 1
-
-    def collisionDetection(self, i,p):
-        dist = np.zeros(len(p))
-        for j in range(len(p)):
-            if j != i:
-                dist[j] = distance(p[i],p[j])
-                if dist[j] < self.diameter:
-                    r1 = np.array((self.xpos,self.ypos))
-                    r2 = np.array((p[j].xpos,p[j].ypos))
-
-                    m1 = self.mass
-                    m2 = p[j].mass
-
-                    v1 = self.v
-                    v2 = p[j].v
-
-                    r_rel = r1 -r2
-                    v_rel = v1 - v2
-
-                    v_cm = (m1*v1 + m2*v2) / (m1 + m2)
-
-                    rr_rel = np.dot(r_rel,r_rel)
-                    vr_rel = np.dot(v_rel,r_rel)
-                    v_rel = 2 * r_rel * vr_rel / rr_rel - v_rel
-
-                    self.v = v_cm + v_rel * m2 / (m1 + m2)
-    def move(self , i,p):
-
-        #Velocity in feet per second
-
-        if self.xpos >= 10:
-            if self.ypos >= 10:
-                thetaRange = (np.pi, 3*np.pi/2)
-
-            elif self.ypos <= -10:
-                thetaRange = (np.pi/2 , np.pi)
-            else:
-                thetaRange = (np.pi/2 , 3*np.pi/2)
-        elif self.ypos >= 10:
-            thetaRange = (np.pi , 2*np.pi)
-
-        elif self.xpos <= -10:
-            if self.ypos >= 10:
-                thetaRange = (3*np.pi/2, 2*np.pi)
-            elif self.ypos <= -10:
-                thetaRange = (0,np.pi/2)
-            else:
-                thetaRange = (3*np.pi/2 , 5*np.pi/2)
-        elif self.ypos <= -10:
-            thetaRange = (0 , np.pi)
+    prodTerm1 = dotprod1/xmagsqr1
+    prodTerm2 = dotprod2/xmagsqr2
 
 
-        if abs(self.xpos) >= 10 or abs(self.ypos) >= 10:
-            thetaHigh , thetaLow = thetaRange
-            #the following comes from plugging in generic high and low values
-            #into point-slop formula for a line
-            self.theta = (thetaHigh - thetaLow) * np.random.random() + thetaLow
-        self.xpos = self.v*np.cos(self.theta) + self.xpos
-        self.ypos = self.v*np.sin(self.theta) + self.ypos
+    # v1 = v1 - massTerm1*prodTerm1*xsub1
+    # v2 = v2 - massTerm2*prodTerm2*xsub2
 
-        self.batteryLife -= 1
+    v1 = v1 - massTerm1*prodTerm1*xsub1
+    #p1.v =  v1 +v2
 
-        self.collisionDetection(i,p)
-    def speed(self, v):
-        self.v = v
 
-particle1 = robovac(40,1)
-particle2 = robovac(40,5)
+    #p2.v = - v2
+    v2 = v2 - massTerm2*prodTerm2*xsub2
 
-p = [particle1, particle2]
-dist = np.zeros(2)
-dist[0] = distance(p[0],p[1])
-print(dist)
+    print(v1,v2)
+
+collisionCalculaiton()

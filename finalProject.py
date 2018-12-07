@@ -8,6 +8,8 @@ Created on Thu Nov 10 19:26:26 2016
 
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.spatial.distance as d
+import time
 
 from matplotlib.widgets import Slider, Button, RadioButtons
 
@@ -25,13 +27,31 @@ def magnitude(vector):
     magnitude = np.sqrt(x**2 + y**2)
     return magnitude
 
+def collisionDetection(pX,p):
+
+    dist = d.cdist(pX, pX)
+
+    for i in range(len(pX)):
+        for j in range(i):
+
+            if dist[i,j] < .000001:
+                #print(dist[i,j],i,j)
+                collisionCalculaiton(p[i],p[j])
+
+
+
+
 def collisionCalculaiton(p1, p2):
+
     v1 = p1.v
     v2 = p2.v
     m1 = p1.m
     m2 = p2.m
     x1 = np.array(p1.x)
     x2 = np.array(p2.x)
+    if np.allclose(x1,x2):
+        x1 += 0.001
+
 
     massTerm1 = (2*m2)/(m1+m2)
     massTerm2 = (2*m1)/(m1+m2)
@@ -50,31 +70,40 @@ def collisionCalculaiton(p1, p2):
     prodTerm2 = dotprod2/xmagsqr2
 
 
-    v1 = v1 - massTerm1*prodTerm1*xsub1
-    v2 = v2 - massTerm2*prodTerm2*xsub2
-    p1.v = v1
-    p2.v = v2
+    # v1 = v1 - massTerm1*prodTerm1*xsub1
+    # v2 = v2 - massTerm2*prodTerm2*xsub2
+    if p1.bumpFlag == False:
+        p1.v = -v1
+        #p1.v =  v1 +v2
+        p1.bumpFlag = True
+        p1.time = time.time()
+    if p2.bumpFlag == False:
+        p2.v = - v2
+        #p2.v = v2 - massTerm2*prodTerm2*xsub2
+
+        p2.bumpFlag = True
+        p2.time = time.time()
+    else:
+        p1.bumpFlag = False
+        p2.bumpFlag = False
 class robovac:
 
-    def __init__(self, v, x):
+    def __init__(self, v, x, step):
         self.x = np.array(x)
-        self.v = np.array(v)
+        self.v = np.array(v)/step
         self.diameter = 1
         self.m = 1
+        self.bumpFlag = False
+        self.time = time.time()
 
 
 
-    def collisionDetection(self, p, i):
-        for j in range(len(p)):
-            if i != j:
-                dist = partDistance(p[i], p[j])
 
-                if dist <= 0.2:  # self.diameter + p[j].diameter:
-                    collisionCalculaiton(self,p[j])
+    def move(self, i, p,pX):
 
-
-    def move(self, i, p):
-        print(self.v)
+        if time.time() - self.time >= 0.1:
+            self.bumpFlag = False
+        collisionDetection(pX, p)
         xpos = self.x[0]
         ypos = self.x[1]
         r = self.diameter / 2
@@ -104,10 +133,11 @@ class robovac:
         # self.x[0] = self.v[0] + xpos
         # self.x[1] = self.v[1] + ypos
 
-        #self.collisionDetection(p, i)
+
         xpos = self.v[0] + xpos
         ypos = self.v[1] + ypos
         self.x = (xpos, ypos)
+
 
     def speed(self, v):
         self.v = v
@@ -115,32 +145,33 @@ class robovac:
 
 
 def stumble():
-    length = 30
-    v = (.5, .5)
+    length = 5
+    step=30
+    v = (5, 5)
     p = [0]*length
     pX = np.zeros((length,2))
     for j in range(length):
-        x = np.array((np.random.randint(10),np.random.randint(10)))
-        p[j] = robovac(v, x) # create an instance of the drunkard class
+        x = np.array(( float(np.random.randint(10)),float(np.random.randint(10))))
+        p[j] = robovac(v, x, step) # create an instance of the drunkard class
         pX[j,0] = p[j].x[0]
         pX[j,1] = p[j].x[1]
 
-    # p = [0]*2
-    # pX = np.zeros((2,2))
-    #
-    # p[0]=robovac((.1,0),(0,0))
-    # p[1]=robovac((0,0),(1,0))
+    #p = [0]*2
+    #pX = np.zeros((2,2))
+
+    # p[0]=robovac((15,0),(0,0),step)
+    # p[1]=robovac((0,0),(1,0),step)
     # for j in range(len(p)):
     #     pX[j,0] = p[j].x[0]
     #     pX[j,1] = p[j].x[1]
-
-
+    #
+    # print(pX)
 
 
     fig = plt.figure() #can use facecolor = 'white' argument to change figure background
     ax = plt.axes()
     #ax = plt.axes(xlim=(-80, 80), ylim = (-80, 80))
-    point1, = ax.plot([], [], 'bo' , markersize=12)
+    point1, = ax.plot([], [], 'bo' , markersize=5)
     # point2, = ax.plot([], [], 'bo' , markersize=12)
 
     ax.set_xlim(-10, 10)
@@ -172,9 +203,9 @@ def stumble():
 
         for i in range(len(p)):
 
-            p[i].move(i, p)
+            p[i].move(i,p, pX)
         for j in range(length):
             pX[j] = p[j].x
-        plt.pause( 0.05)  #this causes a stupid matplotlib warning - ignore!
+        plt.pause(0.001/step/ magnitude(v))  #this causes a stupid matplotlib warning - ignore!
         abcde += 1
 stumble()
