@@ -42,80 +42,101 @@ def collisionDetection(pX,p):
 
 
 def collisionCalculaiton(p1, p2, dist, collideDist):
-
-    r1 = p1.diameter / 2
-    r2 = p2.diameter / 2
-    v1 = p1.v
-    v2 = p2.v
-    m1 = p1.m
-    m2 = p2.m
-
-
-    x1 = np.array(p1.x)
-    x2 = np.array(p2.x)
-    if np.allclose(x1,x2):
-        x1 += v1*0.00001
-
-
-
-    massTerm1 = (2*m2)/(m1+m2)
-    massTerm2 = (2*m1)/(m1+m2)
-    vsub1 = v1-v2
-    vsub2 = v2-v1
-    xsub1 = x1-x2
-    xsub2 = x2-x1
-    xmag1 = magnitude(xsub1)
-    xmag2 = magnitude(xsub2)
-    xmagsqr1 = xmag1**2
-    xmagsqr2 = xmag2**2
-    dotprod1 = np.dot(vsub1,xsub1)
-    dotprod2 = np.dot(vsub2,xsub2)
-
-    prodTerm1 = dotprod1/xmagsqr1
-    prodTerm2 = dotprod2/xmagsqr2
-
-
+    #
+    # r1 = p1.diameter / 2
+    # r2 = p2.diameter / 2
+    # v1 = p1.v
+    # v2 = p2.v
+    # m1 = p1.m
+    # m2 = p2.m
+    #
+    #
+    # x1 = np.array(p1.x)
+    # x2 = np.array(p2.x)
+    # if np.allclose(x1,x2):
+    #     x1 += (v1/magnitude(v1))*0.00001
+    #
+    #
+    #
+    # massTerm1 = (2*m2)/(m1+m2)
+    # massTerm2 = (2*m1)/(m1+m2)
+    # vsub1 = v1-v2
+    # vsub2 = v2-v1
+    # xsub1 = x1-x2
+    # xsub2 = x2-x1
+    # xmag1 = magnitude(xsub1)
+    # xmag2 = magnitude(xsub2)
+    # xmagsqr1 = xmag1**2
+    # xmagsqr2 = xmag2**2
+    # dotprod1 = np.dot(vsub1,xsub1)
+    # dotprod2 = np.dot(vsub2,xsub2)
+    #
+    # prodTerm1 = dotprod1/xmagsqr1
+    # prodTerm2 = dotprod2/xmagsqr2
+    #
+    #
     # v1 = v1 - massTerm1*prodTerm1*xsub1
     # v2 = v2 - massTerm2*prodTerm2*xsub2
+    # print(v1)
+    #
+    # # if p1.bumpFlag == False:
+    #
+    #
+    # p1.v = v1
+    #     # p1.v =  v1 +v2
+    #     # p1.bumpFlag = True
+    #     # p1.time = time.time()
+    # # if p2.bumpFlag == False:
+    # p2.v = v2
+    #     # p2.v = v2 - massTerm2*prodTerm2*xsub2
+    #
+    #     #p2.bumpFlag = True
+    #     # p2.time = time.time()
+    # # else:
+    #     #p1.bumpFlag = False
+    #     #p2.bumpFlag = False
+    # xpos1 = p1.v[0] + p1.x[0]
+    # ypos1 = p1.v[1] + p1.x[1]
+    #
+    # xpos2 = p2.v[0] + p2.x[0]
+    # ypos2 = p2.v[1] + p2.x[1]
+    #
+    # difference = np.array(x1) - np.array(x2)
+    # mag = magnitude(difference)
+    # offset = mag - (p1.diameter/2 + p2.diameter/2)
+    #
+    # percentage1 = magnitude(p1.v) / (magnitude(p1.v) + magnitude(p2.v))
+    #
+    # p1.positionIncrease((-difference/mag)*offset * magnitude(p1.v)/2)
+    # p2.positionIncrease((difference/mag)*offset * magnitude(p2.v)/2)
+    # # if np.sqrt((xpos1 - xpos2)**2 + (ypos1 - ypos2)**2) < collideDist:
+    #     #p1.x = p1.x + p1.v*collideDist/2
+    #     #p2.x = p2.x + p2.v*collideDist/2
+    #     #print(p1.v)
 
+    delx = p1.x - p2.x
+    distance = np.sqrt(np.sum(delx**2))
+    if distance < p1.diameter/2 + p2.diameter/2:
+        if distance == 0:
+            p1.x -= 0.00001
 
-    # if p1.bumpFlag == False:
+        # orignally, when using the wikipedia equaiton, I missread the equaiton
+        # and made the v-prime the new v, when it should have been deltaVself.
+        # Source[ ]  showed me this mistake
+        offset = dist - (p1.diameter/2 + p2.diameter/2)
+        p1.positionIncrease((-delx/distance)*offset/2)
+        p2.positionIncrease((delx/distance)*offset/2)
+        total_m = p1.m + p2.m
+        delv1 = -2*p2.m/total_m*np.inner(p1.v-p2.v,p1.x-p2.x)/np.sum((p1.x-p2.x)**2)*(p1.x-p2.x)
+        delv2 = -2*p1.m/total_m*np.inner(p2.v-p1.v,p2.x-p1.x)/np.sum((p2.x-p1.x)**2)*(p2.x-p1.x)
+        p1.velocityIncrease(delv1)
+        p2.velocityIncrease(delv2)
 
-
-    p1.v = -v1
-        # p1.v =  v1 +v2
-        # p1.bumpFlag = True
-        # p1.time = time.time()
-    # if p2.bumpFlag == False:
-    p2.v = - v2
-        # p2.v = v2 - massTerm2*prodTerm2*xsub2
-
-        #p2.bumpFlag = True
-        # p2.time = time.time()
-    # else:
-        #p1.bumpFlag = False
-        #p2.bumpFlag = False
-    xpos1 = p1.v[0] + p1.x[0]
-    ypos1 = p1.v[1] + p1.x[1]
-
-    xpos2 = p2.v[0] + p2.x[0]
-    ypos2 = p2.v[1] + p2.x[1]
-
-    difference = np.array(x1) - np.array(x2)
-    mag = magnitude(difference)
-    offset = mag - (p1.diameter/2 + p2.diameter/2)
-
-    p1.positionIncrease((-difference/mag)*offset/2)
-    p2.positionIncrease((difference/mag)*offset/2)
-    # if np.sqrt((xpos1 - xpos2)**2 + (ypos1 - ypos2)**2) < collideDist:
-    #     p1.x = p1.x + p1.v*collideDist/2
-    #     p2.x = p2.x + p2.v*collideDist/2
-    #     print(p1.v)
 class robovac:
 
     def __init__(self, v, x, step):
         self.x = np.array(x)
-        self.v = np.array(v)/step
+        self.v = np.array(v)
         self.diameter = 1
         self.m = 1
         self.bumpFlag = False
@@ -124,13 +145,18 @@ class robovac:
 
 
 
-    def move(self, i, p,pX):
+    def move(self, i, p,pX, delt):
+        #xpos = self.x[0]
+        #ypos = self.x[1]
+        #xpos = self.v[0]*delt + xpos
+        #ypos = self.v[1]*delt + ypos
 
-        if time.time() - self.time >= 0.1:
-            self.bumpFlag = False
-        collisionDetection(pX, p)
+        self.x += self.v*delt
+
+    def wallCollision(self):
         xpos = self.x[0]
         ypos = self.x[1]
+
         r = self.diameter / 2
         if xpos + r >= 10:
             if self.v[0] > 0:
@@ -154,33 +180,36 @@ class robovac:
         # self.collisionDetection(i,p)
         #self.v[0] = speed*np.cos(theta)
         #self.v[1] = speed*np.sin(theta)
-        # self.v = np.array(V0, V1)
+        # self.v = np.array(v0, v1)
         # self.x[0] = self.v[0] + xpos
         # self.x[1] = self.v[1] + ypos
 
 
-        xpos = self.v[0] + xpos
-        ypos = self.v[1] + ypos
-        self.x = (xpos, ypos)
 
+
+
+        # collisionDetection(pX, p)
 
     def speed(self, v):
         self.v = v
 
     def positionIncrease(self, dx):
         self.x = self.x + dx
+
+    def velocityIncrease(self,dv):
+        self.v = self.v + dv
 # Main program
 
 
 def stumble():
-    length = 10
+    length = 100
     step=40
     # v = (5, 5)
     p = [0]*length
     pX = np.zeros((length,2))
     for j in range(length):
-        x = np.array(( float(np.random.randint(10)),float(np.random.randint(10))))
-        v = np.array(( float(np.random.randint(-10,10))*5,float(np.random.randint(-10,10))*5))
+        x = np.array(( float(np.random.rand(1)),float(np.random.rand(1))))
+        v = np.array(( float(np.random.rand(1))*50,float(np.random.rand(1))*50))
         p[j] = robovac(v, x, step) # create an instance of the drunkard class
         pX[j,0] = p[j].x[0]
         pX[j,1] = p[j].x[1]
@@ -222,9 +251,9 @@ def stumble():
     #
     #     #fig.canvas.draw_idle()
     # amp_slider.on_changed(sliders_on_changed)
-
+    dt = 0.01
     abcde = 0
-    while abcde < 200:
+    while abcde < 600:
         xval = pX[:,0]
         yval = pX[:,1]
         point1.set_data(xval,yval)
@@ -232,9 +261,11 @@ def stumble():
 
         for i in range(len(p)):
 
-            p[i].move(i,p, pX)
+            p[i].move(i,p, pX, dt)
+            p[i].wallCollision()
+            collisionDetection(pX,p)
         for j in range(length):
             pX[j] = p[j].x
-        plt.pause(0.001/step/ magnitude(v))  #this causes a stupid matplotlib warning - ignore!
+        plt.pause(.0000001)  #this causes a stupid matplotlib warning - ignore!
         abcde += 1
 stumble()
