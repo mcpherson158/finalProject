@@ -38,11 +38,18 @@ def magnitude(vector):
     magnitude = np.sqrt(x**2 + y**2)
     return magnitude
 
-def newParticle(p1, p2, v):
+
+def newParticle(p1, p2, v, flag):
     p1.v = v
-    p1.type = 'green'
+
+    p1.type = flag
 
     p2.type = None
+    p2.v[0] = 0
+    p2.v[1] = 0
+    p2.x[0] = (np.random.random() + 500)*1000
+    p2.x[0] = (np.random.random() + 500)*1000
+
 
 def collisionDetection(pX, p, reaction):
 
@@ -59,12 +66,19 @@ def collisionDetection(pX, p, reaction):
 
                 if not reaction:
                     collisionCalculaiton(p[i], p[j], dist[i, j], collideDist)
-                elif p[i].type == p[j].type:
+                elif (p[i].type == 'blue' and p[j].type == 'red') or        \
+                     (p[i].type == 'red' and p[j].type == 'blue'):
+                    flag = 'green'
+                    collisionReaction(p[i], p[j], i, j, p, pX, flag)
+                elif (p[i].type == 'blue' and p[j].type == 'green') or      \
+                     (p[i].type == 'green' and p[j].type == 'blue'):
+                    flag = 'purple'
+                    collisionReaction(p[i], p[j], i, j, p, pX, flag)
+                else:
                     collisionCalculaiton(p[i], p[j], dist[i, j], collideDist)
-                elif p[i].type != p[j].type:
-                    collisionReaction(p[i], p[j], i, j, p, pX)
 
-def collisionReaction(p1,p2,i,j,p,pX):
+
+def collisionReaction(p1, p2, i, j, p, pX, flag):
 
     m1 = p1.m
     m2 = p2.m
@@ -75,24 +89,10 @@ def collisionReaction(p1,p2,i,j,p,pX):
     vCMx = (m1*v1[0]+m2*v2[0])/(m1+m2)
     vCMy = (m1*v1[1]+m2*v2[1])/(m1+m2)
 
-    vCM = np.array((vCMx,vCMy))
+    vCM = np.array((vCMx, vCMy))
 
-    newParticle(p1, p2, vCM)
+    newParticle(p1, p2, vCM, flag)
 
-    # if p1.type == 'blue':
-
-        # p2.velocityIncrease(delvb)
-        # p2.m += p1.m
-        #
-        # del p[i]
-        # pX = np.delete(pX , i)
-
-    # else:
-    #     p1.velocityIncrease(delva)
-    #     p1.m += p2.m
-    #
-    #     del p[j]
-    #     pX = np.delete(pX, j)
 
 def collisionCalculaiton(p1, p2, dist, collideDist):
     delx = p1.x - p2.x
@@ -168,43 +168,47 @@ def stumble(mode='single', reaction=False, seed=0, length=6):
         lengthRed = int(length-lengthBlue)
         length = lengthBlue + lengthRed
     else:
-        lengthBlue = length
-
+        lengthBlue = length-1
 
     step = 40
     # v = (5, 5)
     p = [0]*length
     pX = np.zeros((length, 2))
-    pT = np.empty((length), dtype = object)
+    pT = np.empty((length), dtype=object)
 
-    for j in range(lengthBlue):
-        x = np.array((float(np.random.rand(1)), float(np.random.rand(1))))
-        v = np.array((float(np.random.rand(1))*50, float(np.random.rand(1))*50))
-        p[j] = robovac(v, x, step, 'blue')  # create an instance of the drunkard class
+    for j in range(lengthBlue+1):
+        x = np.array((float(np.random.rand(1)),
+                      float(np.random.rand(1))))
+        v = np.array((float(np.random.rand(1))*50,
+                      float(np.random.rand(1))*50))
+        # create an instance of the drunkard class
+        p[j] = robovac(v, x, step, 'blue')
         pX[j, 0] = p[j].x[0]
         pX[j, 1] = p[j].x[1]
 
     if mode == 'double':
-        for k in range(lengthRed+1):
+        for k in range(lengthRed):
             k += j
-            x = np.array((float(np.random.rand(1)), float(np.random.rand(1))))
-            v = np.array((float(np.random.rand(1))*50, float(np.random.rand(1))*50))
-            p[k] = robovac(v, x, step, 'red')  # create an instance of the drunkard class
+            x = np.array((float(np.random.rand(1))*8,
+                          float(np.random.rand(1))*8))
+            v = np.array((float(np.random.rand(1))*50,
+                          float(np.random.rand(1))*50))
+            p[k] = robovac(v, x, step, 'red')
             pX[k, 0] = p[k].x[0]
             pX[k, 1] = p[k].x[1]
 
-    print(p)
-    fig = plt.figure()  # can use facecolor = 'white' argument to change figure background
+    # fig = plt.figure()
     ax = plt.axes()
 
     point1, = ax.plot([], [], 'bo', markersize=5)
     point2, = ax.plot([], [], 'ro', markersize=5)
+    point3, = ax.plot([], [], 'go', markersize=5)
+    point4, = ax.plot([], [], 'ko', markersize=5)
 
     ax.set_xlim(-10, 10)
     ax.set_ylim(-10, 10)
     plt.title('Stumbling through the dark...')
 
-    v_tot = np.zeros(2)
     dt = 0.01
     abcde = 0
     while abcde < 600:
@@ -212,37 +216,36 @@ def stumble(mode='single', reaction=False, seed=0, length=6):
             pT[types] = p[types].type
 
         blueIndex = pT == 'blue'
-
         xvalBlue = pX[blueIndex, 0]
         yvalBlue = pX[blueIndex, 1]
-
-        # xvalBlue = pX[:lengthBlue, 0]
-        # yvalBlue = pX[:lengthBlue, 1]
         point1.set_data(xvalBlue, yvalBlue)
 
         if mode == 'double':
             redIndex = pT == 'red'
-
-            xvalRed = pX[redIndex,0]
-            yvalRed = pX[redIndex,1]
+            xvalRed = pX[redIndex, 0]
+            yvalRed = pX[redIndex, 1]
             point2.set_data(xvalRed, yvalRed)
 
+            if reaction:
+                greenIndex = pT == 'green'
+                xvalGreen = pX[greenIndex, 0]
+                yvalGreen = pX[greenIndex, 1]
+                point3.set_data(xvalGreen, yvalGreen)
+
+                purpleIndex = pT == 'purple'
+                xvalPurple = pX[purpleIndex, 0]
+                yvalPurple = pX[purpleIndex, 1]
+                point4.set_data(xvalPurple, yvalPurple)
 
         for i in range(len(p)):
 
             p[i].move(i, p, pX, dt)
             p[i].wallCollision()
-            if not reaction:
-                collisionDetection(pX, p, reaction)
-                v_tot += p[i].v
-            elif reaction:
-                collisionDetection(pX, p, reaction)
+            collisionDetection(pX, p, reaction)
         for j in range(length):
             pX[j] = p[j].x
-        plt.pause(.0001)  # this causes a stupid matplotlib warning - ignore!
+        plt.pause(.0001)
         abcde += 1
 
-        # print(magnitude(v_tot))
 
-
-stumble(mode='double',reaction=False)
+stumble(mode='single', reaction=False, length=40)
