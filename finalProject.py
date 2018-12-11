@@ -14,14 +14,22 @@ Collisions/inelastic_2d.htm
 4]
 https://stackoverflow.com/questions/16094563/numpy-get-index-where-value-is-tru
 e#16094877
+5]
+https://stackoverflow.com/questions/13013781/how-to-draw-a-rectangle-over-a-spe
+cific-region-in-a-matplotlib-graph
+6]
+https://stackoverflow.com/questions/6697259/interactive-matplotlib-plot-with-tw
+o-sliders
+7]
+https://stackoverflow.com/questions/3881453/numpy-add-row-to-array
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.spatial.distance as d
 import time
-
-from matplotlib.widgets import Slider, Button, RadioButtons
+from matplotlib.patches import Rectangle
+from matplotlib.widgets import Slider
 
 # import matplotlib.animation as animation
 
@@ -72,7 +80,7 @@ def collisionDetection(pX, p, reaction):
                     collisionReaction(p[i], p[j], i, j, p, pX, flag)
                 elif (p[i].type == 'blue' and p[j].type == 'green') or      \
                      (p[i].type == 'green' and p[j].type == 'blue'):
-                    flag = 'purple'
+                    flag = 'black'
                     collisionReaction(p[i], p[j], i, j, p, pX, flag)
                 else:
                     collisionCalculaiton(p[i], p[j], dist[i, j], collideDist)
@@ -116,6 +124,15 @@ def collisionCalculaiton(p1, p2, dist, collideDist):
         p2.velocityIncrease(delv2)
 
 
+class rectangleObject:
+
+    def __init__(self, dimentions):
+        xDim, yDim = dimentions
+        self.xDim = xDim
+        self.yDim = yDim
+        self.yDimLower = yDim
+
+
 class robovac:
 
     def __init__(self, v, x, step, type):
@@ -131,20 +148,24 @@ class robovac:
         self.x += self.v*delt
 
     def wallCollision(self):
+        xDim = rectOb.xDim
+        yDim = rectOb.yDim
+        yDimLower = rectOb.yDimLower
+
         xpos = self.x[0]
         ypos = self.x[1]
 
         r = self.diameter / 2
-        if xpos + r >= 10:
+        if xpos + r >= xDim:
             if self.v[0] > 0:
                 self.v[0] = -self.v[0]
-        elif xpos - r <= -10:
+        elif xpos - r <= -xDim:
             if self.v[0] < 0:
                 self.v[0] = -self.v[0]
-        if ypos + r >= 10:
+        if ypos + r >= yDim:
             if self.v[1] > 0:
                 self.v[1] = -self.v[1]
-        elif ypos - r <= -10:
+        elif ypos - r <= -yDimLower:
             if self.v[1] < 0:
                 self.v[1] = -self.v[1]
 
@@ -156,13 +177,30 @@ class robovac:
 
     def velocityIncrease(self, dv):
         self.v = self.v + dv
-# Main program
 
 
-def stumble(mode='single', reaction=False, seed=0, length=6):
+class trackedParticle(robovac):
+
+    def __init__(self, x, v, step, type, steps):
+        robovac.__init__(self, v, x, step, type)
+        self.xRecord = np.empty((steps, 2), dtype=float)
+        self.index = 0
+        self.diameter = 1.6
+
+    def move(self, i, p, pX, delt):
+        self.x += self.v*delt
+        self.xRecord[self.index] = self.x
+        self.index += 1
+
+
+def stumble(mode='double', reaction=True, seed=0, length=20, dimentions=(10, 10), piston=True, steps=500, track=True):
+    # global xDim
+    # global yDim
+    global rectOb
+    rectOb = rectangleObject(dimentions)
+
+    xDim, yDim = dimentions
     np.random.seed(0)
-    # lengthBlue = 3
-    # lengthRed = 3
     if mode == 'double':
         lengthBlue = int(length/2)
         lengthRed = int(length-lengthBlue)
@@ -197,25 +235,60 @@ def stumble(mode='single', reaction=False, seed=0, length=6):
             pX[k, 0] = p[k].x[0]
             pX[k, 1] = p[k].x[1]
 
-    # fig = plt.figure()
+    if track:
+        x = np.array((float(np.random.rand(1)),
+                      float(np.random.rand(1))))
+        v = np.array((float(np.random.rand(1))*50,
+                      float(np.random.rand(1))*50))
+
+        tracked = trackedParticle(x, v, step, 'tracked', steps)
+        p = np.append(p, tracked)
+        pX = np.vstack([pX, tracked.x])
+        pT = np.append(pT, tracked.type)
+        length += 1
+
+    fig = plt.figure()
     ax = plt.axes()
 
-    point1, = ax.plot([], [], 'bo', markersize=5)
-    point2, = ax.plot([], [], 'ro', markersize=5)
-    point3, = ax.plot([], [], 'go', markersize=5)
-    point4, = ax.plot([], [], 'ko', markersize=5)
+    point1, = ax.plot([], [], 'bo', markersize=8)
+    point2, = ax.plot([], [], 'ro', markersize=8)
+    point3, = ax.plot([], [], 'go', markersize=8)
+    point4, = ax.plot([], [], 'ko', markersize=8)
+    point5, = ax.plot([], [], 'yo', markersize=14)
+    line,   = ax.plot([], [])
 
-    ax.set_xlim(-10, 10)
-    ax.set_ylim(-10, 10)
+    ax.set_xlim(-xDim-1, xDim+1)
+    ax.set_ylim(-yDim-1, yDim+1)
     plt.title('Stumbling through the dark...')
+    rectCentX, rectCentY = -(xDim), -(yDim)
+    currentAxis = plt.gca()
+    currentAxis.add_patch(Rectangle((rectCentX, rectCentY), 2*xDim, 2*yDim,
+                          fill=False))
+
+    if piston:
+        x = (-xDim, xDim)
+        y = (yDim, yDim)
+        [line] = ax.plot(x, y)
+        # Define an axes area and draw a slider in it
+        amp_slider_ax = fig.add_axes([0.25, 0.02, 0.55, 0.03])
+        amp_slider = Slider(amp_slider_ax, 'Height', -yDim, yDim,
+                            valinit=rectOb.yDim)
+
+        # Define an action for modifying the line when any slider value changes
+        def sliders_on_changed(val):
+            line.set_ydata(amp_slider.val)
+            fig.canvas.draw_idle()
+            rectOb.yDim = val
+        amp_slider.on_changed(sliders_on_changed)
 
     dt = 0.01
     abcde = 0
-    while abcde < 600:
+    while abcde < steps:
         for types in range(len(p)):
             pT[types] = p[types].type
 
         blueIndex = pT == 'blue'
+
         xvalBlue = pX[blueIndex, 0]
         yvalBlue = pX[blueIndex, 1]
         point1.set_data(xvalBlue, yvalBlue)
@@ -232,10 +305,19 @@ def stumble(mode='single', reaction=False, seed=0, length=6):
                 yvalGreen = pX[greenIndex, 1]
                 point3.set_data(xvalGreen, yvalGreen)
 
-                purpleIndex = pT == 'purple'
-                xvalPurple = pX[purpleIndex, 0]
-                yvalPurple = pX[purpleIndex, 1]
-                point4.set_data(xvalPurple, yvalPurple)
+                blackIndex = pT == 'black'
+                xvalBlack = pX[blackIndex, 0]
+                yvalBlack = pX[blackIndex, 1]
+                point4.set_data(xvalBlack, yvalBlack)
+
+        if track:
+            xvalTrack = pX[-1, 0]
+            yvalTrack = pX[-1, 1]
+            point5.set_data(xvalTrack, yvalTrack)
+            recIndex = p[-1].index
+            xRec = p[-1].xRecord[:recIndex, 0]
+            yRec = p[-1].xRecord[:recIndex, 1]
+            line.set_data(xRec, yRec)
 
         for i in range(len(p)):
 
@@ -248,4 +330,4 @@ def stumble(mode='single', reaction=False, seed=0, length=6):
         abcde += 1
 
 
-stumble(mode='single', reaction=False, length=40)
+stumble(length=20)
