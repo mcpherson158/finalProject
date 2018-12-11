@@ -193,7 +193,7 @@ class trackedParticle(robovac):
         self.index += 1
 
 
-def stumble(mode='double', reaction=True, seed=0, length=20, dimentions=(10, 10), piston=True, steps=500, track=True):
+def stumble(mode='double', reaction=True, seed=0, length=20, dimentions=(10, 10), piston=True, steps=500, track=True, baseline=None, displacement = 0.01):
     # global xDim
     # global yDim
     global rectOb
@@ -236,8 +236,8 @@ def stumble(mode='double', reaction=True, seed=0, length=20, dimentions=(10, 10)
             pX[k, 1] = p[k].x[1]
 
     if track:
-        x = np.array((float(np.random.rand(1)),
-                      float(np.random.rand(1))))
+        x = np.array((float(np.random.rand(1)+displacement),
+                      float(np.random.rand(1)+displacement) ))
         v = np.array((float(np.random.rand(1))*50,
                       float(np.random.rand(1))*50))
 
@@ -255,7 +255,8 @@ def stumble(mode='double', reaction=True, seed=0, length=20, dimentions=(10, 10)
     point3, = ax.plot([], [], 'go', markersize=8)
     point4, = ax.plot([], [], 'ko', markersize=8)
     point5, = ax.plot([], [], 'yo', markersize=14)
-    line,   = ax.plot([], [])
+    linea,   = ax.plot([], [], 'orange')
+    lineb,  = ax.plot([], [], 'c:')
 
     ax.set_xlim(-xDim-1, xDim+1)
     ax.set_ylim(-yDim-1, yDim+1)
@@ -317,7 +318,11 @@ def stumble(mode='double', reaction=True, seed=0, length=20, dimentions=(10, 10)
             recIndex = p[-1].index
             xRec = p[-1].xRecord[:recIndex, 0]
             yRec = p[-1].xRecord[:recIndex, 1]
-            line.set_data(xRec, yRec)
+            linea.set_data(xRec, yRec)
+
+            if baseline != None:
+                xbase, ybase = baseline
+                lineb.set_data(xbase, ybase)
 
         for i in range(len(p)):
 
@@ -329,5 +334,129 @@ def stumble(mode='double', reaction=True, seed=0, length=20, dimentions=(10, 10)
         plt.pause(.0001)
         abcde += 1
 
+def stumbleCompare(mode='double', reaction=True, seed=0, length=20, dimentions=(10, 10), piston=True, steps=500, track=True):
+    # global xDim
+    # global yDim
+    global rectOb
+    rectOb = rectangleObject(dimentions)
 
-stumble(length=20)
+    xDim, yDim = dimentions
+    np.random.seed(0)
+    if mode == 'double':
+        lengthBlue = int(length/2)
+        lengthRed = int(length-lengthBlue)
+        length = lengthBlue + lengthRed
+    else:
+        lengthBlue = length-1
+
+    step = 40
+    # v = (5, 5)
+    p = [0]*length
+    pX = np.zeros((length, 2))
+    pT = np.empty((length), dtype=object)
+
+    for j in range(lengthBlue+1):
+        x = np.array((float(np.random.rand(1)),
+                      float(np.random.rand(1))))
+        v = np.array((float(np.random.rand(1))*50,
+                      float(np.random.rand(1))*50))
+        # create an instance of the drunkard class
+        p[j] = robovac(v, x, step, 'blue')
+        pX[j, 0] = p[j].x[0]
+        pX[j, 1] = p[j].x[1]
+
+    if mode == 'double':
+        for k in range(lengthRed):
+            k += j
+            x = np.array((float(np.random.rand(1))*8,
+                          float(np.random.rand(1))*8))
+            v = np.array((float(np.random.rand(1))*50,
+                          float(np.random.rand(1))*50))
+            p[k] = robovac(v, x, step, 'red')
+            pX[k, 0] = p[k].x[0]
+            pX[k, 1] = p[k].x[1]
+
+    if track:
+        x = np.array((float(np.random.rand(1)),
+                      float(np.random.rand(1))))
+        v = np.array((float(np.random.rand(1))*50,
+                      float(np.random.rand(1))*50))
+
+        tracked = trackedParticle(x, v, step, 'tracked', steps)
+        p = np.append(p, tracked)
+        pX = np.vstack([pX, tracked.x])
+        pT = np.append(pT, tracked.type)
+        length += 1
+
+
+
+    ######################################################################################################################
+
+    rectCentX, rectCentY = -(xDim), -(yDim)
+
+
+
+    dt = 0.01
+    abcde = 0
+    while abcde < steps:
+        for types in range(len(p)):
+            pT[types] = p[types].type
+
+        blueIndex = pT == 'blue'
+
+        xvalBlue = pX[blueIndex, 0]
+        yvalBlue = pX[blueIndex, 1]
+
+
+        if mode == 'double':
+            redIndex = pT == 'red'
+            xvalRed = pX[redIndex, 0]
+            yvalRed = pX[redIndex, 1]
+
+
+            if reaction:
+                greenIndex = pT == 'green'
+                xvalGreen = pX[greenIndex, 0]
+                yvalGreen = pX[greenIndex, 1]
+
+
+                blackIndex = pT == 'black'
+                xvalBlack = pX[blackIndex, 0]
+                yvalBlack = pX[blackIndex, 1]
+
+
+        if track:
+            xvalTrack = pX[-1, 0]
+            yvalTrack = pX[-1, 1]
+
+            recIndex = p[-1].index
+            xRec = p[-1].xRecord[:recIndex, 0]
+            yRec = p[-1].xRecord[:recIndex, 1]
+
+
+        for i in range(len(p)):
+
+            p[i].move(i, p, pX, dt)
+            p[i].wallCollision()
+            collisionDetection(pX, p, reaction)
+        for j in range(length):
+            pX[j] = p[j].x
+
+        abcde += 1
+
+
+    return p[-1]
+
+def presentation(mode='double', reaction=True, seed=0, length=20, dimentions=(10, 10), piston=True, steps=500, track=True, displacement=0.01, compare=True):
+    if compare:
+        pX = stumbleCompare(mode, reaction, seed, length, dimentions, piston, steps, track)
+        xplot = pX.xRecord[:, 0]
+        yplot = pX.xRecord[:, 1]
+        baseline = (xplot, yplot)
+    else:
+        baseline = None
+        displacement = 0
+    stumble(mode, reaction, seed, length, dimentions, piston, steps, track, baseline, displacement)
+
+
+presentation()
