@@ -12,16 +12,23 @@ les-in-box-physics-simulation
 Inelastic Collsions: http://www.batesville.k12.in.us/physics/APPhyNet/Dynamics/
 Collisions/inelastic_2d.htm
 4]
+Index for printing
 https://stackoverflow.com/questions/16094563/numpy-get-index-where-value-is-tru
 e#16094877
 5]
+Drawing a rectangle
 https://stackoverflow.com/questions/13013781/how-to-draw-a-rectangle-over-a-spe
 cific-region-in-a-matplotlib-graph
 6]
+Interactive sliders
 https://stackoverflow.com/questions/6697259/interactive-matplotlib-plot-with-tw
 o-sliders
 7]
+Add row to numpy array
 https://stackoverflow.com/questions/3881453/numpy-add-row-to-array
+8]
+Math for elactic collisions
+https://en.wikipedia.org/wiki/Elastic_collision
 """
 
 import numpy as np
@@ -382,7 +389,8 @@ def runsim(mode='double', reaction=True, seed=0, nParticles=20, dimentions=(10, 
     ax.set_xlim(-xDim-1, xDim+1)
     ax.set_ylim(-yDim-1, yDim+1)
     plt.title('Simulating particles moving in a box')
-
+    plt.legend((linea, lineb), ('Current Path (with added \
+starting displacement)', 'Baseline Path'))
     # defines the rectangle representing the box they are in
     rectCentX, rectCentY = -(xDim), -(yDim)
     currentAxis = plt.gca()
@@ -463,7 +471,7 @@ def runsim(mode='double', reaction=True, seed=0, nParticles=20, dimentions=(10, 
             # purposes
             if baseline != None:
                 xbase, ybase = baseline
-                lineb.set_data(xbase, ybase)
+                lineb.set_data(xbase[:recIndex], ybase[:recIndex])
 
         # updates every particle
         for i in range(len(p)):
@@ -553,7 +561,7 @@ def runsimCompare(mode='double', reaction=True, seed=0, nParticles=20, dimention
 
     return p[-1]
 
-def presentation(mode='double', reaction=True, seed=0, nParticles=26, dimentions=(10, 10), piston=True, steps=500, track=True, displacement=0.01, compare=True):
+def presentation(mode='double', reaction=True, seed=0, nParticles=20, dimentions=(10, 10), piston=True, steps=500, track=True, displacement=0.0000001, compare=True):
     '''
     This function simulates a group of particles in a box, including collision.
     It is intended to be both a visual representation of particle movement
@@ -642,6 +650,3 @@ def presentation(mode='double', reaction=True, seed=0, nParticles=26, dimentions
 
     # runs graphical simulation
     runsim(mode, reaction, seed, nParticles, dimentions, piston, steps, track, baseline, displacement)
-
-
-presentation(displacement=0.00000001, nParticles =50)
